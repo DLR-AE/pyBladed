@@ -1,0 +1,20 @@
+{
+  "FILE": "powprod_12ms.$06",
+  "ACCESS": "D",
+  "FORM": "F",
+  "RECL": 4,
+  "FORMAT": "<f4",
+  "CONTENT": "POWPROD",
+  "CONFIG": "STATIONARY",
+  "NDIMENS": 2,
+  "DIMENS": [3,  20001],
+  "GENLAB": "Generator variables",
+  "VARIAB": ["Generator torque", "Electrical power", "Generator power loss"],
+  "VARUNIT": ["FL", "P", "P"],
+  "AXISLAB": "Time",
+  "AXIUNIT": "T",
+  "AXIMETH": 2,
+  "MIN": 0.0000000E+000,
+  "STEP": 9.9999998E-003,
+  "NVARS": 0
+}
