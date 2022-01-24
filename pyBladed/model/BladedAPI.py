@@ -1,7 +1,7 @@
 """
 This file contains methods to setup and run Bladed .prj files
 """
-import clr
+import clr  # part of the pythonnet package
 import os
 import tempfile
 

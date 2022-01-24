@@ -15,7 +15,7 @@ have been wrapped so far.
 #### General
 
 * OS: Windows (for Bladed) 
-* Python >=3.7
+* Python >=3.7 (for the Bladed API part, a **32-bit interpreter** is needed)
 * Bladed installed (we used v4.9)
 * a Bladed license (e.g. the license dongle plugged in)
 * the location of the Bladed API DLL is in your PYTHONPATH
@@ -23,6 +23,7 @@ have been wrapped so far.
 #### Required Python packages
 * numpy >= 1.12
 * pytest >= 5.0 (for unit tests)
+* pythonnet
 
 ## Installing
 * to use: `pip install --user https+git://github.com/DLR-AE/pyBladed.git`
