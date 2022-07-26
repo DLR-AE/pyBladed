@@ -39,7 +39,7 @@ of the result reader (clone it). They are also used to run unit tests.
 Accessing data in Bladed results becomes pretty simple:
 
 ```
-    from pyBladed.result.binary import BladedResult
+    from pyBladed.results.binary import BladedResult
     
     bladed_result = BladedResult(os.path.join('example_data', '2D'), 'powprod_12ms')
     bladed_result.scan()
