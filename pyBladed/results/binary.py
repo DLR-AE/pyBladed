@@ -196,6 +196,148 @@ class BladedResult:
             self.results[header_file_name]['data'] = \
                 np.frombuffer(file_content, dtype=self.results[header_file_name]['FORMAT']).reshape(shape)
 
+    def _read_bladed_ascii_file(self, fname):
+        """
+        Read Bladed ascii result file
+
+        Parameters
+        ----------
+        fname: str
+            Path to Bladed ascii output file
+
+        Returns
+        ----------
+        success: boolean
+            Flag if reading ascii file was successful
+        lines: list
+            Content of the ascii file, or None
+        """
+        # check if file exists
+        if not os.path.isfile(fname):
+            print('{} file could not be found'.format(fname))
+            return False, None
+
+        # try to read ascii file
+        try:
+            with open(fname, 'r') as f:
+                lines = f.readlines()
+                lines = [line.replace('\n', '') for line in lines]
+            return True, lines
+        except OSError:
+            print('Something went wrong while parsing {} file'.format(fname))
+            return False, None
+
+    def _load_campbell_data_CM(self):
+        """
+        Reads the ascii data with detailed Campell diagram data, if this file is available. This file contains all
+        data used for the Campbell diagram representation. If only the frequency and damping progression are of
+        interest, they can be obtained more elegantly from the binaries (coupled modes).
+
+        The .$CM has two parts. Part 1 contains a list of each individual point of the campbell diagram with
+        operating point, frequency, damping, participation factors. Part 2 contains the information on the mode tracking
+        with number of points, operating points, frequencies, (user-defined) mode track name
+
+        Returns
+        ----------
+        campbell_data_list: list
+            List with all Campbell data (freq, damp, part. factors) for each mode track
+        coupled_mode_names: list
+            List with the names of the mode tracks
+        """
+        # read the .$CM file
+        campbell_data_file = os.path.join(self.result_dir, self.result_prefix+'.$CM')
+        success, lines = self._read_bladed_ascii_file(campbell_data_file)
+        if not success:
+            return None, None
+
+        # read the top part (omega, freq, damping, participation factors for all points in the Campbell diagram)
+        omega = list()
+        freq = list()
+        damp = list()
+        particip_str = list()
+        start_idx, numpoints = [[lines.index(s), int(s.split()[-1])] for s in lines if 'NUMPTS' in s][0]
+        for npoint in range(numpoints):
+            omega.append(float(lines[start_idx + npoint * 4 + 1].split()[-1]))
+            freq.append(float(lines[start_idx + npoint * 4 + 2].split()[-1]))
+            damp.append(float(lines[start_idx + npoint * 4 + 3].split()[-1]))
+            particip_str.append(lines[start_idx + npoint * 4 + 4].split("'")[1])
+
+        # read the bottom part -> to get the (possibly user-defined) mode track name
+        coupled_mode_names = []
+        start_idx, numlines = [[lines.index(s), int(s.split()[-1])] for s in lines if 'NUMLINES' in s][0]
+        campbell_data_list = []
+        node_ID = 0
+        for nline in range(numlines):
+            mode_data = dict()
+            mode_name = lines[start_idx + nline * 5 + 4].split('DEFLEGEND')[-1].strip()
+            coupled_mode_names.append(mode_name)
+            mode_data['mode_name'] = mode_name
+            mode_data['freq_tracked'] = [float(val) for val in lines[start_idx + nline * 5 + 3].split()[-1].split(',')[:-1]]
+
+            npoints = int(lines[start_idx + nline * 5 + 1].split()[-1])
+            mode_data['node_IDs'] = list(np.arange(node_ID, node_ID + npoints))
+            mode_data['omegas'] = omega[node_ID : node_ID + npoints]
+            mode_data['freq'] = freq[node_ID : node_ID + npoints]
+            mode_data['damp'] = damp[node_ID : node_ID + npoints]
+            mode_data['particip_str'] = particip_str[node_ID : node_ID + npoints]
+
+            node_ID = node_ID + npoints
+            campbell_data_list.append(mode_data)
+
+        for mode in campbell_data_list:
+            if mode['freq'] != mode['freq_tracked']:
+                print('Individual frequency values (top part .$CM file) do not match with mode tracked frequency '
+                      'values (bottom part .$CM file)')
+
+        return campbell_data_list, coupled_mode_names
+
+    def _load_campbell_data_shape(self):
+        """
+        Reads the .$shape ascii file which contains modal participations for each (mode tracked) mode at each
+         operating point.
+
+        Returns
+        ----------
+        shape_file_data: dict
+            Dictionary with detailed participation information for each operating point and each mode track
+        """
+        campbell_data_file = os.path.join(self.result_dir, self.result_prefix + '.$shape')
+
+        success, lines = self._read_bladed_ascii_file(campbell_data_file)
+        if not success:
+            return None
+
+        anchor_op = 'operating point'
+        anchor_mode = '------ '
+
+        shape_file_data = dict()
+        op = None
+        mode = None
+        for line in lines:
+            if anchor_op in line:
+                op = line.split(anchor_op)[0]
+                shape_file_data[op] = dict()
+            elif anchor_mode in line:
+                mode = ' '.join(line.split()[1:-1])
+                shape_file_data[op][mode] = dict()
+                shape_file_data[op][mode]['particip_mode_names'] = list()
+                shape_file_data[op][mode]['particip_amplitude'] = list()
+                shape_file_data[op][mode]['particip_phase'] = list()
+            else:
+                # three possibilities:
+                #   1) empty line
+                #   2) line full with ------
+                #   3) line with data (particip_mode   amplitude   phase)
+                if len(line) == 0 or line[0] == '-':
+                    continue
+                else:
+                    dat = line.split()
+                    shape_file_data[op][mode]['particip_mode_names'].append(' '.join(dat[:-2]))
+                    shape_file_data[op][mode]['particip_amplitude'].append(float(dat[-2]))
+                    shape_file_data[op][mode]['particip_phase'].append(float(dat[-1][:-1]))
+
+        return shape_file_data
+
     def __getitem__(self, item):
         """
         Access to data for one item (e.g. time data). Reads the data from the binary file, if not
@@ -210,21 +352,26 @@ class BladedResult:
         array-like
             The corresponding data from the binary result file.
         """
-        # find the corresponding header file
-        header_file_name, dataset_slice = self._find_dataset(item)
 
-        # load data from binary result file if not present
-        if self.results[header_file_name]['data'] is None:
-            self._load_dataset(header_file_name)
-
-        # make slice according to dimensions
-        data = np.copy(self.results[header_file_name]['data'][dataset_slice])
-
-        # limit memory consumption by removing the reference to the binary data
-        if self.unload is True:
-            self.results[header_file_name]['data'] = None
-
-        if self.results[header_file_name]['NDIMENS'] == 3:
-            return data, self.results[header_file_name]
+        # Campbell diagram data is not saved in the same format as all other data, so has to be handled individually
+        if item == 'Campbell diagram':
+            return self._load_campbell_data_CM()
         else:
-            return data
+            # find the corresponding header file
+            header_file_name, dataset_slice = self._find_dataset(item)
+
+            # load data from binary result file if not present
+            if self.results[header_file_name]['data'] is None:
+                self._load_dataset(header_file_name)
+
+            # make slice according to dimensions
+            data = np.copy(self.results[header_file_name]['data'][dataset_slice])
+
+            # limit memory consumption by removing the reference to the binary data
+            if self.unload is True:
+                self.results[header_file_name]['data'] = None
+
+            if self.results[header_file_name]['NDIMENS'] == 3:
+                return data, self.results[header_file_name]
+            else:
+                return data
