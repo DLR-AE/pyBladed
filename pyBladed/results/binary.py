@@ -168,6 +168,8 @@ class BladedResult:
             Name of the header file (which is the top-level dict key)
         """
         for key in self.results:
+            if 'VARIAB' not in self.results[key]:
+                continue
             if dataset_name in self.results[key]['VARIAB']:
                 if self.results[key]['NDIMENS'] == 2:
                     i = self.results[key]['VARIAB'].index(dataset_name)
