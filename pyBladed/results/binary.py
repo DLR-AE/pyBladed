@@ -141,6 +141,8 @@ class BladedResult:
         elif method == 'numpy-dtype':
             if rest == 'R*4':
                 value = '<f4'
+            elif rest == 'R4':
+                value = '<f4'
             elif rest == 'R*8':
                 value = '<f8'
             elif rest == 'I*4':
