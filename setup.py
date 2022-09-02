@@ -22,5 +22,5 @@ setup(
         "Operating System :: MS Windows",
     ],
     python_requires='>=3.7',
-    install_requires=['numpy>=1.12', 'pytest', 'pythonnet'],
+    install_requires=['numpy>=1.12', 'pytest', 'pythonnet>=3.0.0b11'],
 )
