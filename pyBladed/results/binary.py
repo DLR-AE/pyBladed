@@ -223,7 +223,7 @@ class BladedResult:
 
         # try to read ascii file
         try:
-            with open(fname, 'r') as f:
+            with open(fname, 'r', encoding='cp1250') as f:
                 lines = f.readlines()
                 lines = [line.replace('\n', '') for line in lines]
             return True, lines
