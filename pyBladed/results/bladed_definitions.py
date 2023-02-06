@@ -25,7 +25,10 @@ optional_keywords = {
     'AXITICK': 'string-list-remove',
     'MIN': 'float',
     'STEP': 'float',
-    'NVARS': 'int'
+    'NVARS': 'int',
+    'HEADREC': 'int',
+    'VAROFFSET': 'float',
+    'VARSCALE': 'float-list'
 }
 
 # join

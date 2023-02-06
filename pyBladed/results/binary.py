@@ -81,6 +81,12 @@ class BladedResult:
         lines = [line.replace('\n', '') for line in lines]
 
         result = dict()
+
+        # set default values (will be overwritten if keyword is available in header)
+        result['HEADREC'] = 0
+        result['VAROFFSET'] = 0
+        result['VARSCALE'] = 1
+
         for line in lines:
             try:
                 key, value = BladedResult._parse_header_line(line, supported_keywords)
@@ -147,6 +153,8 @@ class BladedResult:
                 value = '<f8'
             elif rest == 'I*4':
                 value = '<i4'
+            elif rest == 'I2':
+                value = '<i2'
             else:
                 raise ValueError('Unknown type in Bladed header: ' + rest)
         else:
@@ -179,8 +187,11 @@ class BladedResult:
                 elif self.results[key]['NDIMENS'] == 3:
                     i = self.results[key]['VARIAB'].index(dataset_name)
                     dataset_slice = slice(None), slice(None), slice(i, i+1)
+                elif self.results[key]['NDIMENS'] == 4:
+                    i = self.results[key]['VARIAB'].index(dataset_name)
+                    dataset_slice = slice(None), slice(None), slice(None), slice(i, i+1)
                 else:
-                    raise NotImplementedError('Current implementation supports 2D or 3D data only')
+                    raise NotImplementedError('Current implementation supports 2D, 3D, or 4D data only')
                 return key, dataset_slice
         raise KeyError('Dataset name not found in any of the known headers')
 
@@ -198,7 +209,10 @@ class BladedResult:
         with open(binary_file_path, 'rb') as file_object:
             file_content = file_object.read()
             self.results[header_file_name]['data'] = \
-                np.frombuffer(file_content, dtype=self.results[header_file_name]['FORMAT']).reshape(shape)
+                self.results[header_file_name]['VARSCALE'] * (
+                        np.frombuffer(file_content, dtype=self.results[header_file_name]['FORMAT'],
+                                      offset=self.results[header_file_name]['HEADREC']).reshape(shape) -
+                        self.results[header_file_name]['VAROFFSET'])
 
     def __getitem__(self, item):
         """

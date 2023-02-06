@@ -134,6 +134,11 @@ def test_parse_header_line_types():
     assert k == 'FORMAT'
     a = np.array([1.], dtype=v)
     assert a.dtype == np.dtype('int32')
+    # 2 byte integer
+    k, v = BladedResult._parse_header_line('FORMAT	I2', bladed_definitions.supported_keywords)
+    assert k == 'FORMAT'
+    a = np.array([1.], dtype=v)
+    assert a.dtype == np.dtype('int16')
     all_types.remove('numpy-dtype')
     # check
     assert len(all_types) == 0
