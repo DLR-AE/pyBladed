@@ -94,9 +94,23 @@ class BladedModel:
         prefix: str
             Prefix for output files
         """
+        self.add_to_batch(result_directory, prefix)
+        self.run_batch()
+
+    def add_to_batch(self, result_directory=os.path.join(tempfile.gettempdir(), r'model', r'Results'),
+                       prefix='bladed_api_run'):
+        """
+        Adds the current project calculation to the batch
+
+        Parameters
+        ----------
+        result_directory: str
+            Path of directory the results are written to
+        prefix: str
+            Prefix for output files
+        """
         Bladed.ProjectApi.QueueJob(self.prj, result_directory, prefix)
         Bladed.ProjectApi.AddQueuedJobsToBatch()
-        self.run_batch()
 
     def modify_blade(self, blade_data):
         """
