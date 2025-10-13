@@ -44,6 +44,7 @@ class BladedModel:
     def get_project(project_file_path):
         """
         Creates a new project instance in the Bladed API.
+        todo: this method takes a lot of time, is it really necessary or can it be accelerated?
 
         Parameters
         ----------
@@ -83,7 +84,7 @@ class BladedModel:
             print('Batch runs have not completed successfully.')
 
     def run_simulation(self, result_directory=os.path.join(tempfile.gettempdir(), r'model', r'Results'),
-                       prefix='bladed_api_run'):
+                       prefix='bladed_api_run', mp_lock=None):
         """
         Executes a simulation with the Bladed model.
 
@@ -94,7 +95,14 @@ class BladedModel:
         prefix: str
             Prefix for output files
         """
+        if mp_lock is not None:
+            mp_lock.acquire()
+
         self.add_to_batch(result_directory, prefix)
+
+        if mp_lock is not None:
+            mp_lock.release()
+
         self.run_batch()
 
     def add_to_batch(self, result_directory=os.path.join(tempfile.gettempdir(), r'model', r'Results'),
