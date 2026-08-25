@@ -26,7 +26,7 @@ have been wrapped so far.
 * pythonnet
 
 ## Installing
-* to use: `pip install --user https+git://github.com/DLR-AE/pyBladed.git`
+* to use: `pip install --user git+https://github.com/DLR-AE/pyBladed.git`
 * to develop
   * clone repository
   * `pip install -e <local_repo_path>`
